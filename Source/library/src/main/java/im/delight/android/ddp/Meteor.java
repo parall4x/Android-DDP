@@ -27,6 +27,16 @@ import com.neovisionaries.ws.client.WebSocketFactory;
 import com.neovisionaries.ws.client.WebSocketFrame;
 import com.neovisionaries.ws.client.WebSocketListener;
 import com.neovisionaries.ws.client.WebSocketState;
+
+import java.io.BufferedInputStream;
+import java.io.InputStream;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.Queue;
@@ -39,6 +49,9 @@ import org.codehaus.jackson.JsonProcessingException;
 import org.codehaus.jackson.JsonNode;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 /** Client that connects to Meteor servers implementing the DDP protocol */
 public class Meteor {
@@ -71,6 +84,9 @@ public class Meteor {
 	private boolean mConnected;
 	private String mLoggedInUserId;
 	private final DataStore mDataStore;
+
+	// SSL related attributes
+	private SSLContext sslContext;
 
 	/**
 	 * Returns a new instance for a client connecting to a server via DDP over websocket
@@ -213,6 +229,63 @@ public class Meteor {
 		mReconnectAttempts = 0;
 	}
 
+	/**
+	 *
+	 * @param cert
+	 * @return
+	 */
+	public Meteor trustCaCert(Certificate cert) {
+
+		try {
+			// Create a KeyStore containing our trusted CAs
+			String keyStoreType = KeyStore.getDefaultType();
+			KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+			keyStore.load(null, null);
+			keyStore.setCertificateEntry("ca", cert);
+
+			// Create a TrustManager that trusts the CAs in our KeyStore
+			String tmfAlgorithm = TrustManagerFactory.getDefaultAlgorithm();
+			TrustManagerFactory tmf = TrustManagerFactory.getInstance(tmfAlgorithm);
+			tmf.init(keyStore);
+
+			// Create an SSLContext that uses our TrustManager
+			SSLContext context = SSLContext.getInstance("TLS");
+			context.init(null, tmf.getTrustManagers(), null);
+
+			// SSL context ready for use
+			sslContext = context;
+
+
+		} catch (KeyStoreException keystoreException) {
+			log(TAG);
+			log(keystoreException.getMessage());
+			log(" provided CA cert will not be explicitly trusted");
+
+		} catch (NoSuchAlgorithmException noSuchAlgorithmException) {
+			log(TAG);
+			log(noSuchAlgorithmException.getMessage());
+			log(" provided CA cert will not be explicitly trusted");
+
+		} catch (CertificateException certificateException) {
+			log(TAG);
+			log(certificateException.getMessage());
+			log(" provided CA cert will not be explicitly trusted");
+
+		} catch (IOException IOException) {
+			log(TAG);
+			log(IOException.getMessage());
+			log(" provided CA cert will not be explicitly trusted");
+
+		} catch (KeyManagementException keyManagementException) {
+			log(TAG);
+			log(keyManagementException.getMessage());
+			log(" provided CA cert will not be explicitly trusted");
+		}
+
+
+		return this;
+	}
+
 	/** Attempts to establish the connection to the server */
 	public void connect() {
 		openConnection(false);
@@ -247,7 +320,11 @@ public class Meteor {
 
 		// create a new WebSocket connection for the data transfer
 		try {
-			mWebSocket = new WebSocketFactory().setConnectionTimeout(30000).createSocket(mServerUri);
+			WebSocketFactory mWebSocketFactory = new WebSocketFactory();
+			// If an SSL context is available, add its socketfactory to the websocketfactory
+			if (sslContext != null) mWebSocketFactory.setSSLSocketFactory(sslContext.getSocketFactory());
+			mWebSocketFactory.setConnectionTimeout(30000);
+			mWebSocket = mWebSocketFactory.createSocket(mServerUri);
 		}
 		catch (final IOException e) {
 			mCallbackProxy.onException(e);
