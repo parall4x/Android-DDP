@@ -88,6 +88,8 @@ public class Meteor {
 	// SSL related attributes
 	private SSLContext sslContext;
 
+	private String loginToken;
+
 	/**
 	 * Returns a new instance for a client connecting to a server via DDP over websocket
 	 *
@@ -1252,9 +1254,7 @@ public class Meteor {
 	 * @param token the login token to save
 	 */
 	private void saveLoginToken(final String token) {
-		final SharedPreferences.Editor editor = getSharedPreferences().edit();
-		editor.putString(Preferences.Keys.LOGIN_TOKEN, token);
-		editor.apply();
+		this.loginToken = token;
 	}
 
 	/**
@@ -1262,8 +1262,8 @@ public class Meteor {
 	 *
 	 * @return the last login token or `null`
 	 */
-	private String getLoginToken() {
-		return getSharedPreferences().getString(Preferences.Keys.LOGIN_TOKEN, null);
+	public String getLoginToken() {
+		return this.loginToken;
 	}
 
 	/**
