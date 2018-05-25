@@ -28,15 +28,12 @@ import com.neovisionaries.ws.client.WebSocketFrame;
 import com.neovisionaries.ws.client.WebSocketListener;
 import com.neovisionaries.ws.client.WebSocketState;
 
-import java.io.BufferedInputStream;
-import java.io.InputStream;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.Queue;
@@ -655,7 +652,7 @@ public class Meteor {
 						if (isLoginResult(resultData)) {
 							// extract the login token for subsequent automatic re-login
 							final String loginToken = resultData.get(Protocol.Field.TOKEN).getTextValue();
-							saveLoginToken(loginToken);
+							//setLoginToken(loginToken);
 
 							// extract the user's ID
 							mLoggedInUserId = resultData.get(Protocol.Field.ID).getTextValue();
@@ -992,7 +989,7 @@ public class Meteor {
 				mLoggedInUserId = null;
 
 				// delete the last login token which is now invalid
-				saveLoginToken(null);
+				setLoginToken(null);
 
 				if (listener != null) {
 					mCallbackProxy.forResultListener(listener).onSuccess(result);
@@ -1253,7 +1250,7 @@ public class Meteor {
 	 *
 	 * @param token the login token to save
 	 */
-	private void saveLoginToken(final String token) {
+	private void setLoginToken(final String token) {
 		this.loginToken = token;
 	}
 
@@ -1262,7 +1259,7 @@ public class Meteor {
 	 *
 	 * @return the last login token or `null`
 	 */
-	public String getLoginToken() {
+	private String getLoginToken() {
 		return this.loginToken;
 	}
 
@@ -1277,7 +1274,7 @@ public class Meteor {
 
 	private void initSession() {
 		// get the last login token
-		final String loginToken = getLoginToken();
+		//final String loginToken = getLoginToken();
 
 		// if we found a login token that might work
 		if (loginToken != null) {
@@ -1295,7 +1292,7 @@ public class Meteor {
 					mLoggedInUserId = null;
 
 					// discard the token which turned out to be invalid
-					saveLoginToken(null);
+					setLoginToken(null);
 
 					announceSessionReady(false);
 				}
