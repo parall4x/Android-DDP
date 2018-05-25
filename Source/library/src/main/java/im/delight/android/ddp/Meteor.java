@@ -1250,7 +1250,7 @@ public class Meteor {
 	 *
 	 * @param token the login token to save
 	 */
-	private void setLoginToken(final String token) {
+	public void setLoginToken(final String token) {
 		this.loginToken = token;
 	}
 
